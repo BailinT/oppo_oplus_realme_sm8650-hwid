@@ -136,10 +136,10 @@ jobs:
           aria2c -s16 -x16 -k1M https://github.com/OnePlusOSS/android_kernel_oneplus_mt6989/archive/refs/heads/oneplus/mt6989_b_16.0.0_ace5_race.zip -o common.zip && 
           unzip -q common.zip && 
           mv "android_kernel_oneplus_mt6989-oneplus-mt6989_b_16.0.0_ace5_race" common &&
+          # ===== 官方157源码包修复：OPPO 未随包发布 vendor 内核驱动（8 处死链），从 cctv18 6.1.134 镜像补齐实体文件 =====
           aria2c -s16 -x16 -k1M https://github.com/cctv18/android_kernel_oneplus_mt6989/archive/refs/heads/oneplus/mt6989_b_16.0.0_ace5_race.zip -o vendor-fix.zip &&
           unzip -q vendor-fix.zip -d vendor-fix &&
           VFIX="vendor-fix/android_kernel_oneplus_mt6989-oneplus-mt6989_b_16.0.0_ace5_race" &&
-          # 官方157源码包有8处 oplus vendor 驱动死链（OPPO 未随包发布 vendor 目录），用 cctv18 6.1.134 镜像的实体文件补齐
           rm -f common/drivers/soc/oplus/oplus_resctrl common/drivers/soc/oplus/storage \
                 common/include/soc/oplus/storage common/kernel/locking/oplus_locking.c \
                 common/kernel/locking/locking_main.h common/kernel/locking/sa_common_struct.h \
@@ -150,7 +150,6 @@ jobs:
           cp -a "$VFIX/kernel/locking/oplus_locking.c" "$VFIX/kernel/locking/locking_main.h" "$VFIX/kernel/locking/sa_common_struct.h" common/kernel/locking/ &&
           cp -a "$VFIX/kernel/oplus_cpu" common/kernel/ &&
           cp -a "$VFIX/mm/mm-trace.h" common/mm/ &&
-          echo 'vendor 驱动补齐完成:' && ls -la common/drivers/soc/oplus/ common/kernel/oplus_cpu > /dev/null &&
           rm -rf vendor-fix vendor-fix.zip
           
           echo "正在克隆llvm-Clang20工具链..." &&
@@ -328,6 +327,12 @@ jobs:
             cp ./susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
             cd ./common
             patch -p1 < 50_add_susfs_in_gki-${{ env.ANDROID_VERSION }}-${{ env.KERNEL_VERSION }}.patch || true
+            # 157 兼容：官方 157 的 base.c include 块有变动，susfs 补丁的 include hunk 打不上（上方 || true 吞掉），
+            # 调用点却在 → 编译报 SUSFS_IS_INODE_* 未声明。检测到调用但缺 include 时手动补入。
+            if grep -q 'SUSFS_IS_INODE_OPEN_REDIRECT' fs/proc/base.c && ! grep -q '#include <linux/susfs_def.h>' fs/proc/base.c; then
+              sed -i '0,/^#include <linux\//s//#include <linux\/susfs_def.h>\n&/' fs/proc/base.c
+              echo '已为 fs/proc/base.c 补入 susfs_def.h include'
+            fi
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
             cd ..
           else
