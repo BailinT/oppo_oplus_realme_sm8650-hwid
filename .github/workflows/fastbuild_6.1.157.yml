@@ -330,7 +330,7 @@ jobs:
             # 157 兼容：官方 157 的 base.c include 块有变动，susfs 补丁的 include hunk 打不上（上方 || true 吞掉），
             # 调用点却在 → 编译报 SUSFS_IS_INODE_* 未声明。检测到调用但缺 include 时手动补入。
             if grep -q 'SUSFS_IS_INODE_OPEN_REDIRECT' fs/proc/base.c && ! grep -q '#include <linux/susfs_def.h>' fs/proc/base.c; then
-              sed -i '0,/^#include <linux\//s//#include <linux\/susfs_def.h>\n&/' fs/proc/base.c
+              sed -i 's|#include <linux/cpufreq_times.h>|#include <linux/cpufreq_times.h>\n#include <linux/susfs_def.h>|' fs/proc/base.c
               echo '已为 fs/proc/base.c 补入 susfs_def.h include'
             fi
             patch -p1 -N -F 3 < 69_hide_stuff.patch || true
