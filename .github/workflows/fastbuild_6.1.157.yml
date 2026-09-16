@@ -137,6 +137,22 @@ jobs:
           unzip -q common.zip && 
           mv "android_kernel_oneplus_mt6989-oneplus-mt6989_b_16.0.0_ace5_race" common &&
           rm -rf common.zip &
+          # ===== 官方157源码包修复：OPPO 未随包发布 vendor 内核驱动（8 处死链），从 cctv18 6.1.134 镜像补齐实体文件 =====
+          aria2c -s16 -x16 -k1M https://github.com/cctv18/android_kernel_oneplus_mt6989/archive/refs/heads/oneplus/mt6989_b_16.0.0_ace5_race.zip -o vendor-fix.zip &&
+          unzip -q vendor-fix.zip -d vendor-fix &&
+          VFIX="vendor-fix/android_kernel_oneplus_mt6989-oneplus-mt6989_b_16.0.0_ace5_race" &&
+          rm -f common/drivers/soc/oplus/oplus_resctrl common/drivers/soc/oplus/storage \
+                common/include/soc/oplus/storage common/kernel/locking/oplus_locking.c \
+                common/kernel/locking/locking_main.h common/kernel/locking/sa_common_struct.h \
+                common/kernel/oplus_cpu common/mm/mm-trace.h &&
+          cp -a "$VFIX/drivers/soc/oplus/oplus_resctrl" common/drivers/soc/oplus/ &&
+          cp -a "$VFIX/drivers/soc/oplus/storage" common/drivers/soc/oplus/ &&
+          cp -a "$VFIX/include/soc/oplus/storage" common/include/soc/oplus/ &&
+          cp -a "$VFIX/kernel/locking/oplus_locking.c" "$VFIX/kernel/locking/locking_main.h" "$VFIX/kernel/locking/sa_common_struct.h" common/kernel/locking/ &&
+          cp -a "$VFIX/kernel/oplus_cpu" common/kernel/ &&
+          cp -a "$VFIX/mm/mm-trace.h" common/mm/ &&
+          rm -rf vendor-fix vendor-fix.zip &
+          # ===== 修复结束 =====
           
           echo "正在克隆llvm-Clang20工具链..." &&
           mkdir -p clang20 &&
